@@ -1,50 +1,165 @@
-# python-container-template
+# GitHub Repository Lister CLI
 
-A template repo for container-ized Python applications.
+A command-line tool to retrieve and display GitHub user repositories using the GitHub API.
 
-## Development Setup
+## Features
 
-This template includes pre-commit hooks for code quality and security checks. To set up the development environment:
+- Fetch repositories for any GitHub username
+- Multiple output formats (default, detailed, JSON, compact)
+- Rate limit handling with and without authentication
+- Docker container support
+- Comprehensive error handling
 
-1. Install development dependencies:
+## Installation
+
+### Local Development
+
+1. Install Python dependencies:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. (Optional) Set up development environment:
 
    ```bash
    make development-requirements
-   ```
-
-2. Install pre-commit hooks:
-
-   ```bash
    make pre-commit-install
    ```
 
-3. Run pre-commit on all files (optional):
+### Docker
 
-   ```bash
-   make pre-commit-run
-   ```
+Build and run the Docker container:
 
-## Pre-commit Hooks
+```bash
+# Build the image
+docker build -t github-repo-lister .
 
-The following hooks are configured to run automatically on commit:
+# Run with a username
+docker run github-repo-lister octocat
+```
 
-- **Black**: Code formatting with consistent style
-- **isort**: Import sorting and organization
-- **flake8**: Linting for code quality
-- **bandit**: Security vulnerability scanning
-- **detect-secrets**: Secret detection in code
-- **Various checks includings**:
-  - Merge conflict detection
-  - YAML/JSON validation
-  - Large file detection
-  - Trailing whitespace removal
-  - End-of-file fixes
+## Usage
 
-## Available Make Targets
+### Basic Usage
 
-- `make development-requirements` - Install development dependencies
-- `make pre-commit-install` - Install pre-commit hooks
-- `make pre-commit-run` - Run pre-commit on all files
-- `make pre-commit-clean` - Remove pre-commit hooks
-- `make lint` - Run linting tools manually
-- `make fmt` - Format code with black and isort
+```bash
+# List repositories for a user (default format)
+python main.py octocat
+
+# List repositories with detailed output
+python main.py octocat --format detailed
+
+# Output as JSON
+python main.py octocat --format json
+
+# Compact output format
+python main.py octocat --format compact
+```
+
+### Authentication
+
+For higher rate limits, set the `GITHUB_TOKEN` environment variable:
+
+```bash
+export GITHUB_TOKEN=your_github_token_here
+python main.py octocat
+```
+
+Or use with Docker:
+
+```bash
+docker run -e GITHUB_TOKEN=your_github_token_here github-repo-lister octocat
+```
+
+### Skip Token Usage
+
+To force running without a token (useful for testing):
+
+```bash
+python main.py octocat --no-token
+```
+
+## Output Formats
+
+### Default Format
+
+```
+repo-name: Repository description
+```
+
+### Detailed Format
+
+```
+Name: repo-name
+Description: Repository description
+URL: https://github.com/user/repo-name
+Private: False
+Fork: False
+Stars: 10
+Watchers: 5
+Size: 100 KB
+Visibility: public
+Last Updated: 2023-01-01T00:00:00Z
+Topics: python, cli
+==================================================
+```
+
+### JSON Format
+
+Complete repository data in JSON format (same as GitHub API response).
+
+### Compact Format
+
+```
+repo-name | Repository description | 10 stars
+```
+
+## Error Handling
+
+The application handles various error scenarios:
+
+- **Rate Limit Exceeded**: When GitHub API rate limit is reached
+- **Network Errors**: Connection issues or timeouts
+- **API Errors**: Invalid usernames or other API issues
+- **Missing Token**: Graceful degradation when no token is provided
+
+## Development
+
+### Running Tests
+
+```bash
+python -m pytest test_main.py
+```
+
+### Code Quality
+
+The project includes pre-commit hooks for code quality:
+
+```bash
+# Install pre-commit hooks
+make pre-commit-install
+
+# Run pre-commit on all files
+make pre-commit-run
+
+# Format code
+make fmt
+
+# Run linting
+make lint
+```
+
+## API Reference
+
+The application uses the GitHub REST API v3:
+
+- **Endpoint**: `https://api.github.com/users/{username}/repos`
+- **Authentication**: Bearer token (optional)
+- **Rate Limits**:
+  - 60 requests/hour (unauthenticated)
+  - 5000 requests/hour (authenticated)
+
+## License
+
+This project is licensed under the MIT License.

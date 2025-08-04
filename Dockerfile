@@ -1,5 +1,5 @@
 # Use an official Python runtime as a parent image
-FROM python:3.12-slim
+FROM python:3.13-slim
 ENV WORKDIR=/work
 RUN mkdir /work
 
@@ -11,7 +11,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy necessary files
-COPY main.py /usr/local/bin
+COPY main.py /usr/local/bin/main.py
+
+# Make the script executable
+RUN chmod +x /usr/local/bin/main.py
 
 # Run the script when the container launches
 ENTRYPOINT ["python", "/usr/local/bin/main.py"]
