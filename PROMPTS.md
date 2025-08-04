@@ -12,7 +12,7 @@ The call to the API should use the env var GITHUB_TOKEN after the value is read 
 
 After retrieving the repos and metadata, command line switches can be used to control the output that is displayed with the default being the repo name and description.
 
-Here's a same of calling the API using curl:
+Here's an example of calling the API using curl:
 
 ```bash
 curl -L \
