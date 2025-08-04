@@ -108,13 +108,15 @@ def format_repository_output(repo: Dict, output_format: str) -> str:
 
     elif output_format == "compact":
         return (
-            f"{repo.get('name', 'N/A')} | "
+            f"- {repo.get('name', 'N/A')} | "
             f"{repo.get('description', 'No description')} | "
             f"{repo.get('stargazers_count', 0)} stars"
         )
 
     else:  # default format
-        return f"{repo.get('name', 'N/A')}: {repo.get('description', 'No description')}"
+        return (
+            f"- {repo.get('name', 'N/A')}: {repo.get('description', 'No description')}"
+        )
 
 
 def main():
@@ -166,12 +168,20 @@ Examples:
             return
 
         # Display repositories
-        print(f"Found {len(repositories)} repositories for user '{args.username}':\n")
+        print(f"Found {len(repositories)} repositories for user '{args.username}':")
 
-        for repo in repositories:
-            print(format_repository_output(repo, args.format))
-            if args.format != "json":
-                print()  # Add spacing between repositories
+        # Handle different output formats
+        if args.format in ["default", "compact"]:
+            # For default and compact formats, output without extra newlines
+            for repo in repositories:
+                print(format_repository_output(repo, args.format))
+        else:
+            # For detailed and json formats, add spacing between repositories
+            print()  # Add initial newline
+            for repo in repositories:
+                print(format_repository_output(repo, args.format))
+                if args.format != "json":
+                    print()  # Add spacing between repositories
 
     except RateLimitExceededError as e:
         print(f"Error: {e}", file=sys.stderr)

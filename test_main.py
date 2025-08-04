@@ -72,7 +72,7 @@ class TestGitHubRepositoryLister(unittest.TestCase):
         """Test default output format."""
         repo = {"name": "test-repo", "description": "Test repository"}
         result = format_repository_output(repo, "default")
-        self.assertEqual(result, "test-repo: Test repository")
+        self.assertEqual(result, "- test-repo: Test repository")
 
     def test_format_repository_output_detailed(self):
         """Test detailed output format."""
@@ -109,7 +109,7 @@ class TestGitHubRepositoryLister(unittest.TestCase):
             "stargazers_count": 10,
         }
         result = format_repository_output(repo, "compact")
-        self.assertEqual(result, "test-repo | Test repository | 10 stars")
+        self.assertEqual(result, "- test-repo | Test repository | 10 stars")
 
 
 if __name__ == "__main__":
