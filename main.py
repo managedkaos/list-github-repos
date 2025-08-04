@@ -199,6 +199,7 @@ Examples:
     parser.add_argument("username", help="GitHub username to list repositories for")
 
     parser.add_argument(
+        "-f",
         "--format",
         choices=["default", "detailed", "json", "compact"],
         default="default",
@@ -206,6 +207,7 @@ Examples:
     )
 
     parser.add_argument(
+        "-n",
         "--no-token",
         action="store_true",
         help="Skip using GITHUB_TOKEN environment variable",
