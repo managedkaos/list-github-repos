@@ -5,10 +5,12 @@ A command-line tool to retrieve and display GitHub user repositories using the G
 ## Features
 
 - Fetch repositories for any GitHub username
+- **Automatic pagination** - retrieves all repositories
 - Multiple output formats (default, detailed, JSON, compact)
 - Rate limit handling with and without authentication
 - Docker container support
 - Comprehensive error handling
+- **Progress reporting** - shows pagination progress to stderr
 
 ## Installation
 
@@ -85,7 +87,7 @@ python main.py octocat --no-token
 ### Default Format
 
 ```
-repo-name: Repository description
+- repo-name: Repository description
 ```
 
 ### Detailed Format
@@ -112,8 +114,22 @@ Complete repository data in JSON format (same as GitHub API response).
 ### Compact Format
 
 ```
-repo-name | Repository description | 10 stars
+- repo-name | Repository description | 10 stars
 ```
+
+## Progress Reporting
+
+The application shows pagination progress to stderr:
+
+```
+Fetching page 1...
+Retrieved 100 repositories from page 1
+Fetching page 2...
+Retrieved 50 repositories from page 2
+Total repositories fetched: 150
+```
+
+This allows you to see the progress while the application fetches all repositories, especially useful for users with many repositories.
 
 ## Error Handling
 
@@ -156,6 +172,7 @@ The application uses the GitHub REST API v3:
 
 - **Endpoint**: `https://api.github.com/users/{username}/repos`
 - **Authentication**: Bearer token (optional)
+- **Pagination**: Automatically handles all pages (100 repos per page)
 - **Rate Limits**:
   - 60 requests/hour (unauthenticated)
   - 5000 requests/hour (authenticated)

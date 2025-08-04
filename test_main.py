@@ -32,16 +32,48 @@ class TestGitHubRepositoryLister(unittest.TestCase):
 
     @patch("requests.get")
     def test_make_github_api_request_success(self, mock_get):
-        """Test successful GitHub API request."""
+        """Test successful GitHub API request with pagination."""
+        # Mock response with fewer than per_page repositories (indicating last page)
         mock_response = Mock()
-        mock_response.json.return_value = [{"name": "test-repo"}]
+        mock_response.json.return_value = [
+            {"name": "test-repo-1"},
+            {"name": "test-repo-2"},
+        ]
         mock_response.status_code = 200
         mock_get.return_value = mock_response
 
         result = make_github_api_request("testuser", "test_token")
 
-        self.assertEqual(result, [{"name": "test-repo"}])
-        mock_get.assert_called_once()
+        self.assertEqual(result, [{"name": "test-repo-1"}, {"name": "test-repo-2"}])
+        self.assertEqual(
+            mock_get.call_count, 1
+        )  # Only called once since we got < per_page results
+
+    @patch("requests.get")
+    def test_make_github_api_request_multiple_pages(self, mock_get):
+        """Test successful GitHub API request with multiple pages."""
+        # Mock first page response (full page)
+        mock_response_1 = Mock()
+        mock_response_1.json.return_value = [
+            {"name": f"test-repo-{i}"} for i in range(100)
+        ]
+        mock_response_1.status_code = 200
+
+        # Mock second page response (partial page, indicating last page)
+        mock_response_2 = Mock()
+        mock_response_2.json.return_value = [
+            {"name": "test-repo-100"},
+            {"name": "test-repo-101"},
+        ]
+        mock_response_2.status_code = 200
+
+        # Set up mock to return different responses for different calls
+        mock_get.side_effect = [mock_response_1, mock_response_2]
+
+        result = make_github_api_request("testuser", "test_token")
+
+        self.assertEqual(len(result), 102)  # 100 + 2 repositories
+        self.assertEqual(mock_get.call_count, 2)  # Called twice for two pages
 
     @patch("requests.get")
     def test_make_github_api_request_rate_limit(self, mock_get):

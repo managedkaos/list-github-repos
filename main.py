@@ -33,7 +33,7 @@ def get_github_token() -> Optional[str]:
 
 def make_github_api_request(username: str, token: Optional[str] = None) -> List[Dict]:
     """
-    Make API request to GitHub to get user repositories.
+    Make API request to GitHub to get user repositories with pagination support.
 
     Args:
         username: GitHub username
@@ -56,21 +56,51 @@ def make_github_api_request(username: str, token: Optional[str] = None) -> List[
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
+    all_repositories = []
+    page = 1
+    per_page = 100  # Maximum allowed by GitHub API
+
     try:
-        response = requests.get(url, headers=headers, timeout=30)
+        while True:
+            # Add pagination parameters
+            params = {"page": page, "per_page": per_page}
 
-        if response.status_code == 403:
-            # Check if it's a rate limit issue
-            rate_limit_info = response.headers.get("X-RateLimit-Remaining")
-            if rate_limit_info == "0":
-                raise RateLimitExceededError(
-                    "Rate limit exceeded. Please wait before making more requests."
-                )
-            else:
-                raise GitHubAPIError(f"API request failed: {response.status_code}")
+            print(f"Fetching page {page}...", file=sys.stderr)
 
-        response.raise_for_status()
-        return response.json()
+            response = requests.get(url, headers=headers, params=params, timeout=30)
+
+            if response.status_code == 403:
+                # Check if it's a rate limit issue
+                rate_limit_info = response.headers.get("X-RateLimit-Remaining")
+                if rate_limit_info == "0":
+                    raise RateLimitExceededError(
+                        "Rate limit exceeded. Please wait before making more requests."
+                    )
+                else:
+                    raise GitHubAPIError(f"API request failed: {response.status_code}")
+
+            response.raise_for_status()
+
+            repositories = response.json()
+
+            # If no repositories returned, we've reached the end
+            if not repositories:
+                break
+
+            all_repositories.extend(repositories)
+            print(
+                f"Retrieved {len(repositories)} repositories from page {page}",
+                file=sys.stderr,
+            )
+
+            # If we got fewer than per_page repositories, this is the last page
+            if len(repositories) < per_page:
+                break
+
+            page += 1
+
+        print(f"Total repositories fetched: {len(all_repositories)}", file=sys.stderr)
+        return all_repositories
 
     except requests.exceptions.RequestException as e:
         raise GitHubAPIError(f"Network error: {e}")
