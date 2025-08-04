@@ -31,13 +31,22 @@ def get_github_token() -> Optional[str]:
     return os.getenv("GITHUB_TOKEN")
 
 
-def make_github_api_request(username: str, token: Optional[str] = None) -> List[Dict]:
+def make_github_api_request(
+    username: str,
+    token: Optional[str] = None,
+    repos_per_page: int = 100,
+    max_pages: Optional[int] = None,
+    max_repos: Optional[int] = None,
+) -> List[Dict]:
     """
     Make API request to GitHub to get user repositories with pagination support.
 
     Args:
         username: GitHub username
         token: Optional GitHub token for authentication
+        repos_per_page: Number of repositories to request per page (1-100)
+        max_pages: Maximum number of pages to retrieve (None for no limit)
+        max_repos: Maximum total number of repositories to retrieve (None for no limit)
 
     Returns:
         List of repository dictionaries
@@ -58,10 +67,20 @@ def make_github_api_request(username: str, token: Optional[str] = None) -> List[
 
     all_repositories = []
     page = 1
-    per_page = 100  # Maximum allowed by GitHub API
+    per_page = min(repos_per_page, 100)  # GitHub API maximum is 100
 
     try:
         while True:
+            # Check if we've reached the page limit
+            if max_pages is not None and page > max_pages:
+                print(f"Reached page limit ({max_pages})", file=sys.stderr)
+                break
+
+            # Check if we've reached the repository limit
+            if max_repos is not None and len(all_repositories) >= max_repos:
+                print(f"Reached repository limit ({max_repos})", file=sys.stderr)
+                break
+
             # Add pagination parameters
             params = {"page": page, "per_page": per_page}
 
@@ -87,14 +106,26 @@ def make_github_api_request(username: str, token: Optional[str] = None) -> List[
             if not repositories:
                 break
 
-            all_repositories.extend(repositories)
+            # Add repositories up to the limit
+            remaining_slots = (
+                max_repos - len(all_repositories)
+                if max_repos is not None
+                else len(repositories)
+            )
+            repositories_to_add = repositories[:remaining_slots]
+
+            all_repositories.extend(repositories_to_add)
             print(
-                f"Retrieved {len(repositories)} repositories from page {page}",
+                f"Retrieved {len(repositories_to_add)} repositories from page {page}",
                 file=sys.stderr,
             )
 
             # If we got fewer than per_page repositories, this is the last page
             if len(repositories) < per_page:
+                break
+
+            # If we've reached the repository limit, stop
+            if max_repos is not None and len(all_repositories) >= max_repos:
                 break
 
             page += 1
@@ -160,6 +191,8 @@ Examples:
   %(prog)s octocat --format detailed
   %(prog)s octocat --format json
   %(prog)s octocat --format compact
+  %(prog)s octocat --limit 10
+  %(prog)s octocat --pages 2 --repos-per-page 50
         """,
     )
 
@@ -178,7 +211,42 @@ Examples:
         help="Skip using GITHUB_TOKEN environment variable",
     )
 
+    # Pagination control arguments
+    parser.add_argument(
+        "-r",
+        "--repos-per-page",
+        type=int,
+        default=100,
+        help="Number of repositories to request per page (default: 100, max: 100)",
+    )
+
+    parser.add_argument(
+        "-p",
+        "--pages",
+        type=int,
+        help="Maximum number of pages to retrieve (default: no limit)",
+    )
+
+    parser.add_argument(
+        "-l",
+        "--limit",
+        type=int,
+        help="Maximum total number of repositories to retrieve (default: no limit)",
+    )
+
     args = parser.parse_args()
+
+    # Validate repos-per-page argument
+    if args.repos_per_page < 1 or args.repos_per_page > 100:
+        parser.error("--repos-per-page must be between 1 and 100")
+
+    # Validate pages argument
+    if args.pages is not None and args.pages < 1:
+        parser.error("--pages must be greater than 0")
+
+    # Validate limit argument
+    if args.limit is not None and args.limit < 1:
+        parser.error("--limit must be greater than 0")
 
     # Get GitHub token
     token = None if args.no_token else get_github_token()
@@ -190,8 +258,14 @@ Examples:
         )
 
     try:
-        # Fetch repositories
-        repositories = make_github_api_request(args.username, token)
+        # Fetch repositories with pagination controls
+        repositories = make_github_api_request(
+            args.username,
+            token,
+            repos_per_page=args.repos_per_page,
+            max_pages=args.pages,
+            max_repos=args.limit,
+        )
 
         if not repositories:
             print(f"No repositories found for user '{args.username}'")

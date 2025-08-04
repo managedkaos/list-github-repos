@@ -76,6 +76,38 @@ class TestGitHubRepositoryLister(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 2)  # Called twice for two pages
 
     @patch("requests.get")
+    def test_make_github_api_request_with_limit(self, mock_get):
+        """Test GitHub API request with repository limit."""
+        # Mock response with more repositories than the limit
+        mock_response = Mock()
+        mock_response.json.return_value = [
+            {"name": f"test-repo-{i}"} for i in range(50)
+        ]
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+
+        result = make_github_api_request("testuser", "test_token", max_repos=10)
+
+        self.assertEqual(len(result), 10)  # Should only return 10 repositories
+        self.assertEqual(mock_get.call_count, 1)  # Only called once since limit reached
+
+    @patch("requests.get")
+    def test_make_github_api_request_with_page_limit(self, mock_get):
+        """Test GitHub API request with page limit."""
+        # Mock response with full page
+        mock_response = Mock()
+        mock_response.json.return_value = [
+            {"name": f"test-repo-{i}"} for i in range(100)
+        ]
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+
+        result = make_github_api_request("testuser", "test_token", max_pages=1)
+
+        self.assertEqual(len(result), 100)  # Should return 100 repositories
+        self.assertEqual(mock_get.call_count, 1)  # Only called once due to page limit
+
+    @patch("requests.get")
     def test_make_github_api_request_rate_limit(self, mock_get):
         """Test GitHub API request with rate limit exceeded."""
         mock_response = Mock()

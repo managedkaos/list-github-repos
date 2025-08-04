@@ -6,6 +6,7 @@ A command-line tool to retrieve and display GitHub user repositories using the G
 
 - Fetch repositories for any GitHub username
 - **Automatic pagination** - retrieves all repositories
+- **Pagination controls** - limit pages, repositories per page, and total repositories
 - Multiple output formats (default, detailed, JSON, compact)
 - Rate limit handling with and without authentication
 - Docker container support
@@ -59,6 +60,22 @@ python main.py octocat --format json
 python main.py octocat --format compact
 ```
 
+### Pagination Controls
+
+```bash
+# Limit total number of repositories
+python main.py octocat --limit 10
+
+# Limit number of pages to retrieve
+python main.py octocat --pages 2
+
+# Set repositories per page (1-100)
+python main.py octocat --repos-per-page 50
+
+# Combine multiple controls
+python main.py octocat --pages 2 --repos-per-page 25 --limit 30
+```
+
 ### Authentication
 
 For higher rate limits, set the `GITHUB_TOKEN` environment variable:
@@ -81,6 +98,16 @@ To force running without a token (useful for testing):
 ```bash
 python main.py octocat --no-token
 ```
+
+## Command Line Options
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--repos-per-page` | `-r` | Number of repositories per page (1-100, default: 100) |
+| `--pages` | `-p` | Maximum number of pages to retrieve (default: no limit) |
+| `--limit` | `-l` | Maximum total repositories to retrieve (default: no limit) |
+| `--format` | | Output format: default, detailed, json, compact |
+| `--no-token` | | Skip using GITHUB_TOKEN environment variable |
 
 ## Output Formats
 
@@ -126,10 +153,11 @@ Fetching page 1...
 Retrieved 100 repositories from page 1
 Fetching page 2...
 Retrieved 50 repositories from page 2
+Reached repository limit (150)
 Total repositories fetched: 150
 ```
 
-This allows you to see the progress while the application fetches all repositories, especially useful for users with many repositories.
+This allows you to see the progress while the application fetches repositories, especially useful for users with many repositories.
 
 ## Error Handling
 
@@ -139,6 +167,7 @@ The application handles various error scenarios:
 - **Network Errors**: Connection issues or timeouts
 - **API Errors**: Invalid usernames or other API issues
 - **Missing Token**: Graceful degradation when no token is provided
+- **Invalid Parameters**: Validates pagination control parameters
 
 ## Development
 
@@ -172,7 +201,7 @@ The application uses the GitHub REST API v3:
 
 - **Endpoint**: `https://api.github.com/users/{username}/repos`
 - **Authentication**: Bearer token (optional)
-- **Pagination**: Automatically handles all pages (100 repos per page)
+- **Pagination**: Automatically handles all pages (configurable repos per page)
 - **Rate Limits**:
   - 60 requests/hour (unauthenticated)
   - 5000 requests/hour (authenticated)
